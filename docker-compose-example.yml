@@ -1,6 +1,7 @@
 services:
     bot:
         image: discord-tts-bot:local
+        restart: unless-stopped
         volumes:
           - type: bind
             source: ./config.toml
@@ -10,12 +11,14 @@ services:
         network_mode: "host"
     database:
         image: postgres:13
+        restart: unless-stopped
         ports: [5432:5432]
         environment: 
             POSTGRES_USER: tts
             POSTGRES_PASSWORD: tts_password
     tts-service:
         image: gnomeddev/tts-service
+        restart: unless-stopped
         volumes:
           - type: bind
             source: ${GOOGLE_APPLICATION_CREDENTIALS}
