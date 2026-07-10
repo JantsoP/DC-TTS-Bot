@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Ok;
 use parking_lot::Mutex;
 use small_fixed_array::FixedArray;
 
@@ -84,7 +83,17 @@ async fn main_(start_time: std::time::SystemTime) -> Result<()> {
         fetch_voices(&reqwest, tts_service(), TTSMode::gTTS),
         fetch_voices(&reqwest, tts_service(), TTSMode::eSpeak),
         fetch_voices(&reqwest, tts_service(), TTSMode::gCloud),
-        fetch_voices::<Vec<PollyVoice>>(&reqwest, tts_service(), TTSMode::Polly),
+        async {
+            match fetch_voices::<Vec<PollyVoice>>(&reqwest, tts_service(), TTSMode::Polly).await {
+                Ok(voices) => Ok(voices),
+                Err(err) => {
+                    tracing::warn!(
+                        "Failed to load Polly voices from tts-service; continuing without Polly: {err}"
+                    );
+                    Ok(Vec::new())
+                }
+            }
+        },
         fetch_translation_languages(&reqwest, tts_service()),
         async { Ok(http.get_bot_gateway().await?.shards) },
         async {

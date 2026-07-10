@@ -296,6 +296,31 @@ async fn can_change_mode(
         return Ok(false);
     }
 
+    if mode.is_premium() {
+        let guild_row = data.guilds_db.get(ctx.guild_id().unwrap().into()).await?;
+        if let Some(required_role) = guild_row.mode_required_role
+            && !ctx.author_permissions()?.administrator()
+        {
+            let member_roles = match *ctx {
+                Context::Application(ApplicationContext { interaction, .. }) => {
+                    &*interaction.member.as_deref().unwrap().roles
+                }
+                Context::Prefix(poise::PrefixContext { msg, .. }) => {
+                    &*msg.member.as_deref().unwrap().roles
+                }
+            };
+
+            if !member_roles.contains(&required_role) {
+                let msg = aformat!(
+                    "You need {} to change to premium modes with `/set mode`.",
+                    required_role.mention()
+                );
+                ctx.send_error(msg).await?;
+                return Ok(false);
+            }
+        }
+    }
+
     if mode.is_premium() && !guild_is_premium {
         ctx.send(poise::CreateReply::default().embed(CreateEmbed::default()
             .title("TTS Bot Premium")
@@ -434,6 +459,42 @@ async fn generic_bool_command(
     guilds_db.set_one(guild_id.into(), key, &value).await?;
     ctx.say(replace_bool(resp, value)).await?;
 
+    Ok(())
+}
+
+/// Changes the required role to use premium options in /set mode.
+#[poise::command(
+    guild_only,
+    category = "Settings",
+    prefix_command,
+    slash_command,
+    required_permissions = "ADMINISTRATOR",
+    required_bot_permissions = "SEND_MESSAGES",
+    aliases("mode_role", "set_mode_role", "premium_mode_role")
+)]
+pub async fn mode_required_role(
+    ctx: Context<'_>,
+    #[description = "Role required for premium choices in /set mode"]
+    role: Option<serenity::Role>,
+) -> CommandResult {
+    let guild_id = ctx.guild_id().unwrap();
+    let role_id = role.as_ref().map(|r| r.id.get() as i64);
+
+    ctx.data()
+        .guilds_db
+        .set_one(guild_id.into(), "mode_required_role", &role_id)
+        .await?;
+
+    let msg = if let Some(role) = role {
+        aformat!(
+            "Only {} (and admins) can set premium voice modes with `/set mode`.",
+            role.mention()
+        )
+    } else {
+        aformat!("Anyone can set premium voice modes with `/set mode`.")
+    };
+
+    ctx.say(msg).await?;
     Ok(())
 }
 
@@ -1346,6 +1407,7 @@ pub fn commands() -> [Command; 5] {
                 xsaid(),
                 autojoin(),
                 required_role(),
+                mode_required_role(),
                 voice(),
                 server_voice(),
                 mode(),

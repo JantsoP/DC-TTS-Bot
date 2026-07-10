@@ -32,6 +32,7 @@ pub const DB_SETUP_QUERY: &str = "
         channel         bigint      DEFAULT 0,
         premium_user    bigint,
         required_role   bigint,
+        mode_required_role bigint,
         xsaid           bool        DEFAULT True,
         bot_ignore      bool        DEFAULT True,
         auto_join       bool        DEFAULT False,

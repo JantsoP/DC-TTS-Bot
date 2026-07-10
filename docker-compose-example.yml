@@ -1,10 +1,10 @@
 services:
     bot:
-        image: Discord-TTS/Bot
+        image: discord-tts-bot:local
         volumes:
           - type: bind
             source: ./config.toml
-            target: /config.toml
+            target: /bot/config.toml
 
         depends_on: [database, tts-service]
         network_mode: "host"
@@ -21,7 +21,8 @@ services:
             source: ${GOOGLE_APPLICATION_CREDENTIALS}
             target: /gcp.json
         environment:
-          -  IPV6_BLOCK
+          -  IPV6_BLOCK=DISABLE
+          -  AWS_EC2_METADATA_DISABLED=true
           -  LOG_LEVEL=INFO
           -  BIND_ADDR=0.0.0.0:20310
           -  GOOGLE_APPLICATION_CREDENTIALS=/gcp.json

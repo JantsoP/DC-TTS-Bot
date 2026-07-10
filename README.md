@@ -137,16 +137,28 @@ Update compose values:
 2. Set `GOOGLE_APPLICATION_CREDENTIALS` host path for your JSON.
 3. Optionally set AWS/DeepL env vars for `tts-service`.
 
+Create a `.env` file in the same folder as `docker-compose.yml` so compose can resolve
+`${GOOGLE_APPLICATION_CREDENTIALS}` in the bind mount:
+
+```bash
+cat > .env << 'EOF'
+GOOGLE_APPLICATION_CREDENTIALS=/opt/dc-tts/gcp.json
+EOF
+```
+
+You can also `export GOOGLE_APPLICATION_CREDENTIALS=/opt/dc-tts/gcp.json` in your shell,
+but `.env` is preferred for repeatable restarts.
+
 Example:
 
 ```yaml
 services:
   bot:
-	 image: Discord-TTS/Bot
+	 image: discord-tts-bot:local
 	 volumes:
 		- type: bind
 		  source: ./config.toml
-		  target: /config.toml
+		  target: /bot/config.toml
 		  # Add :Z on SELinux systems if needed
 	 depends_on: [database, tts-service]
 	 network_mode: "host"
@@ -167,6 +179,7 @@ services:
 		  target: /gcp.json
 		  # Add :Z on SELinux systems if needed
 	 environment:
+		- IPV6_BLOCK=DISABLE
 		- LOG_LEVEL=INFO
 		- BIND_ADDR=0.0.0.0:20310
 		- GOOGLE_APPLICATION_CREDENTIALS=/gcp.json
@@ -182,11 +195,11 @@ services:
 
 ## Build And Start
 
-The compose file uses `image: Discord-TTS/Bot` for the bot service.
+The compose file uses `image: discord-tts-bot:local` for the bot service.
 That means you must build a local image with the same tag before running compose.
 
 ```bash
-docker build -t Discord-TTS/Bot .
+docker build -t discord-tts-bot:local .
 docker compose up -d
 docker compose logs -f bot
 ```
@@ -219,6 +232,21 @@ If SELinux blocks bind mounts on AlmaLinux, use `:Z` bind options.
 2. No errors when fetching voices from `tts-service`.
 3. Invite bot to server and run setup/join commands.
 
+## Register Slash Commands
+
+This bot does not auto-register slash commands on startup.
+You must run the owner-only prefix command once:
+
+```text
+-register
+```
+
+Notes:
+
+1. The default prefix is `-`.
+2. The command is owner-only, so run it from the bot owner account.
+3. The current implementation registers global commands, so command visibility can take some time to propagate.
+
 ## Premium Features On Self-Hosted Instance
 
 ### How it works
@@ -230,6 +258,14 @@ The normal user-facing flow is:
 1. In target server, run `/premium activate` from the account you want linked.
 2. Bot records that user as `premium_user` for the guild.
 3. Premium modes/features unlock for that guild.
+
+To restrict who can switch to premium modes with `/set mode`, set a dedicated role:
+
+```text
+/set mode_required_role @RoleName
+```
+
+Only that role (and server admins) can select premium voice modes afterwards.
 
 ### Self-host shortcut behavior
 
@@ -245,7 +281,12 @@ Then `/premium activate` requires an actual entitlement (Patreon/Discord monetiz
 	- Add at least one `[[TTS-Services]]` block to `config.toml`.
 2. Bot cannot fetch voices:
 	- Ensure `tts-service` is running and reachable on `20310`.
-3. gCloud voice failures:
+3. `tts-service` exits with `IPV6_BLOCK not set`:
+	- Set `IPV6_BLOCK=DISABLE` in the `tts-service` environment section.
+4. Bot exits with `GLIBC_2.38 not found`:
+	- Rebuild the bot image after pulling latest Dockerfile changes.
+	- Run `docker compose down` then `docker build -t discord-tts-bot:local .` and `docker compose up -d`.
+5. gCloud voice failures:
 	- Verify service account JSON path and Text-to-Speech API enabled.
-4. Premium activate says not subscribed:
+6. Premium activate says not subscribed:
 	- Omit `[Premium-Info]` for local self-host behavior, or configure real premium service correctly.

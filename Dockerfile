@@ -1,4 +1,4 @@
-FROM rust:nightly-bookworm AS builder
+FROM rustlang/rust:nightly AS builder
 
 ENV RUSTFLAGS="-C target-cpu=native"
 
@@ -35,7 +35,7 @@ COPY . .
 
 RUN cargo build --release --locked
 
-FROM debian:bookworm-slim
+FROM rustlang/rust:nightly AS runtime
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

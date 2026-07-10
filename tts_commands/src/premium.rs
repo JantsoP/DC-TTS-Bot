@@ -142,10 +142,11 @@ pub async fn activate(ctx: Context<'_>) -> CommandResult {
         .set_one(guild_id.into(), "premium_user", &author_id)
         .await?;
     data.guilds_db
-        .set_one(guild_id.into(), "voice_mode", &TTSMode::gCloud)
+        .set_one(guild_id.into(), "voice_mode", &TTSMode::gTTS)
         .await?;
 
-    ctx.say("Done! This server is now premium!").await?;
+    ctx.say("Done! This server is now premium. Default mode is gTTS; use `/set mode` to choose another mode.")
+        .await?;
 
     let guild = ctx.cache().guild(guild_id);
     let guild_name = match guild.as_ref() {

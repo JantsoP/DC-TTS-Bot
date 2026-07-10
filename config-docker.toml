@@ -1,12 +1,15 @@
 [Main]
 log_level = 'info'
-tts_services = ['https://localhost:20310']
 #main_server_invite = 'https://discord.gg/example'
 #announcements_channel = id here
 #invite_channel = id here
 #main_server = id here
 #ofs_role = id here
 #token =
+
+[[TTS-Services]]
+url = 'http://localhost:20310'
+weight = 1
 
 [PostgreSQL-Info]
 database = 'tts'
