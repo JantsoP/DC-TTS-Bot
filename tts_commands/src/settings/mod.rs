@@ -315,7 +315,7 @@ async fn can_change_mode(
                     "You need {} to change to premium modes with `/set mode`.",
                     required_role.mention()
                 );
-                ctx.send_error(msg).await?;
+                ctx.send_error(msg.as_str()).await?;
                 return Ok(false);
             }
         }
@@ -486,12 +486,12 @@ pub async fn mode_required_role(
         .await?;
 
     let msg = if let Some(role) = role {
-        aformat!(
+        format!(
             "Only {} (and admins) can set premium voice modes with `/set mode`.",
             role.mention()
         )
     } else {
-        aformat!("Anyone can set premium voice modes with `/set mode`.")
+        "Anyone can set premium voice modes with `/set mode`.".to_owned()
     };
 
     ctx.say(msg).await?;
